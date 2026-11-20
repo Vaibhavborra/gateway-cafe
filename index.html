@@ -1,0 +1,644 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="See what's in stock at Gateway Cafe before you walk over: live shelf levels, restock times and busy hours.">
+<meta name="theme-color" content="#12201A">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2312201A'/%3E%3Ctext x='16' y='23' font-family='Arial' font-weight='800' font-size='20' fill='%23fff' text-anchor='middle'%3EG%3C/text%3E%3C/svg%3E">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}*,*::before,*::after{box-sizing:border-box}body{margin:0;font-size:14px;font-family:system-ui,sans-serif;-webkit-text-size-adjust:100%}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Gateway Cafe Stock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a "shelf board" — status hero up top, then today's rhythm (traffic + restocks), then the shelf itself as a filterable grid of item tags. */
+:root{
+  --bg:#EEF2F0; --surface:#FFFFFF; --surface-2:#F6F9F7; --ink:#12201A; --muted:#5A6A62; --faint:#8A9890; --line:#D9E2DD;
+  --accent:#2A48C8; --accent-soft:#E3E8FB; --bar:#B9C8C0;
+  --good:#17845A; --good-soft:#DDF2E7; --warn:#B86E00; --warn-soft:#FBEBCF; --crit:#C2352B; --crit-soft:#F9E0DD;
+  --star:#D99A00;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1412; --surface:#151F1B; --surface-2:#1A2621; --ink:#E5EEE9; --muted:#97A79F; --faint:#6E7E76; --line:#26342E;
+  --accent:#8EA4FF; --accent-soft:#1E2847; --bar:#34463E;
+  --good:#4CC48A; --good-soft:#163527; --warn:#F0A93B; --warn-soft:#3A2B12; --crit:#F2766C; --crit-soft:#3D1D1A; --star:#F2C14E;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1412; --surface:#151F1B; --surface-2:#1A2621; --ink:#E5EEE9; --muted:#97A79F; --faint:#6E7E76; --line:#26342E;
+  --accent:#8EA4FF; --accent-soft:#1E2847; --bar:#34463E;
+  --good:#4CC48A; --good-soft:#163527; --warn:#F0A93B; --warn-soft:#3A2B12; --crit:#F2766C; --crit-soft:#3D1D1A; --star:#F2C14E;
+  color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:20px 48px;display:flex;flex-direction:column;gap:28px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
+.label{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* top bar */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{width:36px;height:36px;border-radius:10px;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:18px}
+.brand b{font-family:var(--display);font-size:19px;font-weight:700;display:block;line-height:1.1}
+.brand span{font-size:12.5px;color:var(--muted)}
+.sync{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.live{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:99px;background:var(--surface);border:1px solid var(--line);color:var(--ink);font-weight:500}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 0 0 var(--good);animation:pulse 2.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--good) 60%,transparent)}70%{box-shadow:0 0 0 8px transparent}100%{box-shadow:0 0 0 0 transparent}}
+
+/* hero */
+.hero{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:20px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:24px}
+.headline{display:flex;flex-direction:column;gap:18px}
+.status-chip{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:13px;padding:5px 12px;border-radius:99px}
+.status-chip.open{background:var(--good-soft);color:var(--good)}
+.status-chip.closed{background:var(--crit-soft);color:var(--crit)}
+.headline h1{font-size:clamp(30px,4.6vw,50px);line-height:1.02;font-weight:800;letter-spacing:-.02em}
+.headline h1 em{font-style:normal;color:var(--accent)}
+.headline p.sub{margin:0;color:var(--muted);font-size:16px;max-width:58ch}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.fact{background:var(--surface-2);padding:12px 14px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.fact strong{font-family:var(--display);font-size:20px;font-weight:700;line-height:1.15}
+.fact small{color:var(--muted);font-size:12.5px}
+
+.gauge{display:flex;flex-direction:column;gap:18px}
+.gauge-top{display:flex;align-items:center;gap:18px}
+.ring{position:relative;width:132px;height:132px;flex:none}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .center{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.ring .center b{font-family:var(--display);font-size:34px;font-weight:800;line-height:1;display:block}
+.ring .center span{font-size:11px;color:var(--muted)}
+.gauge-copy{display:flex;flex-direction:column;gap:4px;min-width:0}
+.gauge-copy h3{font-size:18px}
+.gauge-copy p{margin:0;color:var(--muted);font-size:13.5px}
+.counts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.count{border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;border:1px solid var(--line);background:var(--surface-2);cursor:pointer;text-align:left}
+.count:hover{border-color:var(--muted)}
+.count b{font-family:var(--display);font-size:24px;font-weight:700;line-height:1.1}
+.count span{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.sw{width:8px;height:8px;border-radius:2px;display:inline-block}
+
+/* rhythm */
+.rhythm{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:20px}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.sec-head h2{font-size:21px;font-weight:700}
+.sec-head p{margin:0;color:var(--muted);font-size:13px}
+.bars{position:relative;display:flex;align-items:flex-end;gap:2px;height:150px;padding-top:22px;border-bottom:1px solid var(--line)}
+.bars .gl{position:absolute;left:0;right:0;border-top:1px dashed var(--line);pointer-events:none}
+.bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;position:relative;cursor:default}
+.bar i{display:block;width:100%;max-width:34px;background:var(--bar);border-radius:4px 4px 0 0;transition:background .15s}
+.bar:hover i{background:var(--muted)}
+.bar.now i{background:var(--accent)}
+.bar.now::before{content:"Now";position:absolute;top:-20px;font-family:var(--mono);font-size:10px;color:var(--accent);font-weight:600}
+.axis{display:flex;gap:2px;margin-top:6px}
+.axis span{flex:1;text-align:center;font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+.tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12.5px;padding:7px 10px;border-radius:8px;z-index:20;white-space:nowrap;transform:translate(-50%,calc(-100% - 10px))}
+.tip b{font-weight:600}
+.besttime{margin-top:16px;display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:var(--accent-soft);font-size:13.5px}
+.besttime svg{flex:none;color:var(--accent);margin-top:2px}
+
+.timeline{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.timeline li{display:grid;grid-template-columns:62px 18px minmax(0,1fr);gap:10px;position:relative;padding-bottom:16px}
+.timeline li:last-child{padding-bottom:0}
+.timeline .t{font-family:var(--mono);font-size:12px;color:var(--muted);padding-top:2px;text-align:right}
+.timeline .node{position:relative;display:flex;justify-content:center}
+.timeline .node::before{content:"";width:12px;height:12px;border-radius:50%;margin-top:4px;border:2px solid var(--muted);background:var(--surface);z-index:1}
+.timeline li.done .node::before{background:var(--good);border-color:var(--good)}
+.timeline li.next .node::before{border-color:var(--accent);background:var(--accent-soft)}
+.timeline .node::after{content:"";position:absolute;top:16px;bottom:-16px;width:2px;background:var(--line)}
+.timeline li:last-child .node::after{display:none}
+.timeline .what b{display:block;font-weight:600}
+.timeline .what small{color:var(--muted);font-size:12.5px;display:block}
+.timeline .miss{color:var(--crit)}
+
+/* my list */
+.mylist{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.mini{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line);min-width:200px}
+.mini .nm{font-weight:600;font-size:14px;line-height:1.2}
+.mini small{display:block;color:var(--muted);font-size:12px}
+.empty{color:var(--muted);font-size:14px;padding:14px 16px;border:1px dashed var(--line);border-radius:12px}
+
+/* controls */
+.controls{display:flex;flex-direction:column;gap:12px}
+.ctl-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.search{flex:1 1 240px;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:0 12px;min-width:0}
+.search input{border:0;background:transparent;padding:11px 0;width:100%;outline:none}
+.search:focus-within{border-color:var(--accent)}
+select,.toggle{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.toggle{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.toggle input{accent-color:var(--accent);width:16px;height:16px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);padding:6px 12px;border-radius:99px;font-size:13.5px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.chip:hover{border-color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip em{font-style:normal;font-family:var(--mono);font-size:11px;opacity:.65}
+
+/* grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;position:relative;min-width:0;transition:transform .15s,border-color .15s}
+.card:hover{transform:translateY(-2px);border-color:var(--muted)}
+.card.out{background:var(--surface-2)}
+.card.out .nm{color:var(--muted)}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.card .cat{font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint)}
+.card .nm{font-family:var(--display);font-size:18px;font-weight:700;line-height:1.15;margin-top:3px}
+.meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.meta .price{color:var(--ink);font-weight:600}
+.tag{font-family:var(--mono);font-size:10px;padding:1px 5px;border-radius:4px;border:1px solid var(--line);color:var(--muted)}
+.star{background:none;border:0;padding:4px;cursor:pointer;color:var(--faint);border-radius:8px;line-height:0}
+.star:hover{color:var(--star)}
+.star[aria-pressed="true"]{color:var(--star)}
+.stockrow{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;white-space:nowrap}
+.pill.in{background:var(--good-soft);color:var(--good)}
+.pill.low{background:var(--warn-soft);color:var(--warn)}
+.pill.out{background:var(--crit-soft);color:var(--crit)}
+.pill.arriving{background:var(--accent-soft);color:var(--accent)}
+.left{font-size:13px;color:var(--muted)}
+.left b{font-family:var(--display);font-size:22px;color:var(--ink);font-weight:700;margin-right:2px}
+.shelf{display:flex;gap:2px;height:8px}
+.shelf i{flex:1;border-radius:2px;background:var(--line)}
+.shelf.in i.f{background:var(--good)} .shelf.low i.f{background:var(--warn)}
+.card-foot{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;border-top:1px solid var(--line);padding-top:10px}
+.card-foot small{font-size:12px;color:var(--muted);line-height:1.35}
+.card-foot small b{color:var(--ink);font-weight:500}
+.card-foot .warnline{color:var(--crit)}
+.spark{width:92px;height:30px;flex:none;overflow:visible}
+.noresults{grid-column:1/-1;text-align:center;color:var(--muted);padding:40px 16px}
+
+footer{border-top:1px solid var(--line);padding-top:18px;color:var(--muted);font-size:12.5px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+footer p{margin:0;max-width:70ch}
+
+@media (max-width:860px){.hero,.rhythm{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:520px){.facts{grid-template-columns:minmax(0,1fr)}.panel{padding:18px}.ring{width:108px;height:108px}.ring .center b{font-size:28px}.axis span:nth-child(even){visibility:hidden}}
+@media (prefers-reduced-motion:reduce){.dot{animation:none}.card{transition:none}.card:hover{transform:none}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">G</div>
+      <div><b>Gateway Cafe</b><span>Shelf tracker · Grab-and-go market</span></div>
+    </div>
+    <div class="sync">
+      <span class="live"><span class="dot" aria-hidden="true"></span><span id="updatedAt">Updated</span></span>
+      <span>Next sensor sync in <b class="num" id="countdown">--:--</b></span>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="panel headline">
+      <span class="status-chip" id="openChip"></span>
+      <h1 id="headline">Loading shelf data…</h1>
+      <p class="sub" id="subline"></p>
+      <div class="facts">
+        <div class="fact"><span class="label">Last restock</span><strong id="fLast">–</strong><small id="fLastSub"></small></div>
+        <div class="fact"><span class="label">Next restock</span><strong id="fNext">–</strong><small id="fNextSub"></small></div>
+        <div class="fact"><span class="label">Hours today</span><strong id="fHours">–</strong><small id="fHoursSub"></small></div>
+      </div>
+    </div>
+    <div class="panel gauge">
+      <div class="gauge-top">
+        <div class="ring" role="img" id="ringWrap">
+          <svg viewBox="0 0 120 120" aria-hidden="true">
+            <circle cx="60" cy="60" r="50" fill="none" stroke="var(--line)" stroke-width="12"></circle>
+            <circle id="ringArc" cx="60" cy="60" r="50" fill="none" stroke="var(--accent)" stroke-width="12" stroke-linecap="round" stroke-dasharray="0 400"></circle>
+          </svg>
+          <div class="center"><div><b class="num" id="pct">–</b><span>shelves full</span></div></div>
+        </div>
+        <div class="gauge-copy">
+          <h3>Shelf fullness</h3>
+          <p id="gaugeCopy">Units on the shelf compared with a full restock, counted by the cafe's weight sensors.</p>
+        </div>
+      </div>
+      <div class="counts">
+        <button class="count" data-status="in" type="button"><b class="num" id="cIn">–</b><span><i class="sw" style="background:var(--good)"></i>In stock</span></button>
+        <button class="count" data-status="low" type="button"><b class="num" id="cLow">–</b><span><i class="sw" style="background:var(--warn)"></i>Running low</span></button>
+        <button class="count" data-status="out" type="button"><b class="num" id="cOut">–</b><span><i class="sw" style="background:var(--crit)"></i>Sold out</span></button>
+      </div>
+    </div>
+  </section>
+
+  <section class="rhythm">
+    <div class="panel">
+      <div class="sec-head"><h2>How busy it gets</h2><p id="busyNote">Typical checkouts per hour</p></div>
+      <div class="bars" id="bars"></div>
+      <div class="axis" id="axis"></div>
+      <div class="besttime">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+        <span id="bestTime"></span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="sec-head"><h2>Today's restocks</h2><p id="restockDay"></p></div>
+      <ul class="timeline" id="timeline"></ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>My list</h2><p>Star items below to check them at a glance.</p></div>
+    <div class="mylist" id="mylist"></div>
+  </section>
+
+  <section class="controls" id="shelf">
+    <div class="sec-head" style="margin-bottom:0"><h2>On the shelf</h2><p id="shelfNote"></p></div>
+    <div class="ctl-row">
+      <label class="search" for="q">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true" style="color:var(--muted)"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+        <input id="q" type="search" placeholder="Search ramen, Uncrustables, Fairlife…" autocomplete="off">
+      </label>
+      <select id="sort" aria-label="Sort items">
+        <option value="avail">Sort: Availability</option>
+        <option value="name">Sort: Name A–Z</option>
+        <option value="stock">Sort: Most left</option>
+        <option value="price">Sort: Price, low to high</option>
+      </select>
+      <label class="toggle" for="onlyIn"><input type="checkbox" id="onlyIn"> Hide sold out</label>
+    </div>
+    <div class="chips" id="chips" role="group" aria-label="Filter by category"></div>
+  </section>
+  <div class="grid" id="grid" style="margin-top:-12px"></div>
+
+  <footer>
+    <p><b>Demo data.</b> Stock levels are simulated for a class prototype and refresh automatically every hour; they are not real Gateway Cafe inventory. Everyone who opens this page sees the same numbers for the same hour.</p>
+    <p>MGT course project · Gateway Cafe availability tracker</p>
+  </footer>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+// ---------- catalog ----------
+const CATS = ["Breakfast","Quick Meals","Snacks","Candy & Gum","Drinks"];
+const KIND = {};
+const I = (id,name,cat,price,cap,pop,tags=[]) => ({id,name,cat,price,cap,pop,tags,kind:KIND[cat]||"all"});
+const ITEMS = [
+  I("poptarts","Pop-Tarts","Breakfast",2.49,30,1.1,["V"]),
+  I("cereal","Cereal Cup","Breakfast",2.79,30,0.9,["V"]),
+  I("donuts","Mini Donuts","Breakfast",2.99,28,1.2,["V"]),
+  I("oatmeal","Instant Oatmeal Cup","Breakfast",2.49,24,0.8,["V"]),
+  I("eggs","Hard-Boiled Eggs (2-pack)","Breakfast",2.29,24,1.0,["HP","GF"]),
+  I("uncrustables","Uncrustables","Quick Meals",1.99,36,1.4,["V"]),
+  I("wraps","Wraps","Quick Meals",6.99,24,1.35),
+  I("ramen","Ramen","Quick Meals",1.49,60,1.1),
+  I("tuna","Tuna Pouch","Quick Meals",2.79,20,0.7,["HP","GF"]),
+  I("lays","Lay's Chips","Snacks",1.99,30,1.1,["GF"]),
+  I("cheetos","Cheetos","Snacks",1.99,30,1.2),
+  I("otherchips","Other Chips","Snacks",1.99,40,1.0),
+  I("protein","Protein Bars","Snacks",2.99,80,1.0,["HP"]),
+  I("jerky","Beef Jerky","Snacks",4.99,25,0.8,["HP"]),
+  I("dipsticks","Dipping Sticks","Snacks",2.49,24,0.9),
+  I("chocfruit","Chocolate-Covered Fruit","Snacks",4.49,20,0.8,["GF"]),
+  I("candy","Candy","Candy & Gum",1.79,150,1.0),
+  I("gum","Gum","Candy & Gum",1.99,15,0.8),
+  I("mints","Mints","Candy & Gum",2.29,15,0.6),
+  I("coffee","Bottled Coffee","Drinks",3.99,30,1.5),
+  I("oj","Orange Juice","Drinks",2.99,24,1.0,["VG"]),
+  I("applejuice","Apple Juice","Drinks",2.79,24,0.8,["VG"]),
+  I("cranberry","Cranberry Juice","Drinks",2.79,20,0.6,["VG"]),
+  I("water","Bottled Water","Drinks",1.49,48,1.2,["VG"]),
+  I("soda","Soda","Drinks",2.29,48,1.3),
+  I("fairlife","Fairlife Milk","Drinks",3.79,60,1.2,["HP","GF"]),
+  I("vitaminwater","Vitamin Water","Drinks",2.49,30,1.0),
+];
+const TAGNAME = {V:"Vegetarian",VG:"Vegan",GF:"Gluten-free",HP:"High protein"};
+
+// ---------- deterministic randomness (same numbers for everyone, per hour) ----------
+function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+function rnd(s){let t=(hash(s)+0x6D2B79F5)|0;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;}
+const dayKey = d => `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+
+function schedule(d){
+  const dk = dayKey(d), we = d.getDay()===0||d.getDay()===6;
+  const traffic = new Array(24).fill(0);
+  let open, close, restocks;
+  open=8; close=24;
+  if(!we){
+    [4,5,5,6,9,8,6,5,5,6,8,7,6,5,4,3].forEach((v,i)=>traffic[8+i]=v);
+    restocks=[{h:7,m:30,label:"Morning delivery",kinds:["all"]},
+              {h:13,m:0,label:"Afternoon restock",kinds:["all"]},
+              {h:18,m:30,label:"Evening restock",kinds:["all"]}];
+  } else {
+    [2,3,4,5,6,6,5,5,4,5,6,6,5,4,3,2].forEach((v,i)=>traffic[8+i]=v);
+    restocks=[{h:7,m:30,label:"Morning delivery",kinds:["all"]},
+              {h:15,m:0,label:"Afternoon restock",kinds:["all"]}];
+  }
+  restocks.forEach(r=>{ r.m = Math.max(0,Math.min(55, r.m + Math.round((rnd(dk+r.label)-0.5)*4)*5)); });
+  return {open,close,traffic,restocks,we};
+}
+
+function simulate(d, upto){
+  const S = schedule(d), dk = dayKey(d);
+  const stock={}, hist={}, last={}, missed={};
+  ITEMS.forEach(it=>{ stock[it.id] = it.kind==="all" ? it.cap*(0.05+rnd(dk+it.id+"lo")*0.35) : 0; hist[it.id]=[]; last[it.id]=null; missed[it.id]=null; });
+  const events=[];
+  for(let H=6; H<upto; H++){
+    ITEMS.forEach(it=>hist[it.id].push(stock[it.id]));
+    S.restocks.filter(r=>r.h===H).forEach(r=>{
+      const ev={...r, stocked:0, units:0, missed:[]};
+      ITEMS.forEach(it=>{
+        if(!r.kinds.includes(it.kind)) return;
+        if(rnd(dk+r.label+it.id+"miss")<0.06){ ev.missed.push(it); missed[it.id]=r; return; }
+        const target = Math.round(it.cap*(0.82+rnd(dk+r.label+it.id)*0.18));
+        if(target>stock[it.id]){ ev.units += Math.round(target-stock[it.id]); stock[it.id]=target; }
+        last[it.id]=r; missed[it.id]=null; ev.stocked++;
+      });
+      events.push(ev);
+    });
+    if(H>=S.open && H<S.close){
+      ITEMS.forEach(it=>{
+        const boost = it.kind==="am" && H<11 ? 1.6 : 1;
+        const demand = it.cap*it.pop*boost*S.traffic[H]*0.022*(0.55+rnd(dk+it.id+"h"+H)*0.9);
+        stock[it.id]=Math.max(0, stock[it.id]-demand);
+      });
+    }
+  }
+  ITEMS.forEach(it=>hist[it.id].push(stock[it.id]));
+  return {S, stock, hist, last, missed, events, upcoming:S.restocks.filter(r=>r.h>=upto)};
+}
+
+// ---------- helpers ----------
+const fmt = (h,m=0) => { if(h===24&&!m) return "midnight"; const ap=h>=12&&h<24?"PM":"AM"; const hh=((h+11)%12)+1; return m? `${hh}:${String(m).padStart(2,"0")} ${ap}` : `${hh} ${ap}`; };
+const fmtFull = (h,m=0) => { const ap=h>=12&&h<24?"PM":"AM"; return `${((h+11)%12)+1}:${String(m).padStart(2,"0")} ${ap}`; };
+function ago(mins){ if(mins<1) return "just now"; if(mins<60) return `${mins} min ago`; const h=Math.floor(mins/60), m=mins%60; return m? `${h}h ${m}m ago` : `${h}h ago`; }
+function until(mins){ if(mins<60) return `in ${mins} min`; const h=Math.floor(mins/60), m=mins%60; return m? `in ${h}h ${m}m` : `in ${h}h`; }
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+let favs;
+try { favs = JSON.parse(localStorage.getItem("gc-favs")||"null"); } catch(e) { favs=null; }
+if(!Array.isArray(favs)) favs=["uncrustables","ramen","fairlife","coffee"];
+const saveFavs = () => { try{ localStorage.setItem("gc-favs", JSON.stringify(favs)); }catch(e){} };
+
+const ui = { q:"", cat:"All", sort:"avail", onlyIn:false, status:null };
+let model = null, hourKey = "";
+
+function build(){
+  const now = new Date();
+  const H = now.getHours();
+  let simDay = new Date(now), upto = H, overnight=false;
+  if(H<6){ simDay.setDate(simDay.getDate()-1); upto=24; overnight=true; }
+  const sim = simulate(simDay, upto);
+  const today = schedule(now);
+  const nowMin = H*60+now.getMinutes();
+  const isOpen = nowMin>=today.open*60 && nowMin<today.close*60;
+
+  const items = ITEMS.map(it=>{
+    const raw = sim.stock[it.id], left = Math.floor(raw+0.15);
+    const nextR = overnight ? null : sim.upcoming.find(r=>r.kinds.includes(it.kind));
+    let status;
+    if(left<=0) status = nextR ? "arriving" : "out";
+    else if(left <= Math.max(2, Math.round(it.cap*0.25))) status="low";
+    else status="in";
+    return {...it, left, status, nextR, last:sim.last[it.id], missed:sim.missed[it.id], hist:sim.hist[it.id]};
+  });
+  model = {now, H, overnight, simDay, sim, today, isOpen, items, nowMin};
+}
+
+function minsSince(r){ // r is a restock on model.simDay
+  if(!r) return null;
+  let m = model.nowMin - (r.h*60+r.m);
+  if(model.overnight) m += 24*60;
+  return m;
+}
+
+// ---------- render ----------
+function renderHero(){
+  const {items, isOpen, today, sim, overnight, now, H} = model;
+  const totalCap = items.reduce((a,i)=>a+i.cap,0), totalLeft = items.reduce((a,i)=>a+Math.max(0,i.left),0);
+  const pct = Math.round(totalLeft/totalCap*100);
+  const c = {in:0,low:0,out:0};
+  items.forEach(i=>{ if(i.status==="in") c.in++; else if(i.status==="low") c.low++; else c.out++; });
+
+  const chip = document.getElementById("openChip");
+  chip.className = "status-chip " + (isOpen?"open":"closed");
+  let chipText;
+  if(isOpen) chipText = `Open now · closes ${fmt(today.close)}`;
+  else if(now.getHours() < today.open) chipText = `Closed · opens ${fmt(today.open)}`;
+  else { const tm = new Date(now); tm.setDate(tm.getDate()+1); chipText = `Closed · opens ${fmt(schedule(tm).open)} tomorrow`; }
+  chip.innerHTML = `<span class="sw" style="background:currentColor;border-radius:50%"></span>${chipText}`;
+
+  const lastEv = sim.events[sim.events.length-1];
+  const nextEv = overnight ? null : sim.upcoming[0];
+  const word = pct>=70 ? "well stocked" : pct>=45 ? "partly stocked" : pct>=20 ? "running thin" : "nearly empty";
+  const hl = document.getElementById("headline");
+  if(!sim.events.length) hl.innerHTML = `Shelves are waiting on the <em>morning delivery</em>`;
+  else hl.innerHTML = isOpen ? `Gateway is open and <em>${word}</em> right now` : `Gateway is closed. Shelves are <em>${word}</em>`;
+
+  const outNames = items.filter(i=>i.status==="out").map(i=>i.name);
+  let sub = "";
+  if(lastEv) sub += `${lastEv.label} came in at ${fmtFull(lastEv.h,lastEv.m)}${overnight?" yesterday":""}. `;
+  sub += c.out ? `${c.out} item${c.out>1?"s are":" is"} sold out${outNames.length? ", including " + outNames.slice(0,2).join(" and "):""}.` : "Nothing is sold out.";
+  if(nextEv) sub += ` Next restock around ${fmtFull(nextEv.h,nextEv.m)}.`;
+  document.getElementById("subline").textContent = sub;
+
+  if(lastEv){
+    document.getElementById("fLast").textContent = fmtFull(lastEv.h,lastEv.m);
+    document.getElementById("fLastSub").textContent = `${lastEv.label} · ${ago(minsSince(lastEv))}`;
+  } else { document.getElementById("fLast").textContent = "None yet"; document.getElementById("fLastSub").textContent = "First delivery is on its way"; }
+  if(nextEv){
+    document.getElementById("fNext").textContent = fmtFull(nextEv.h,nextEv.m);
+    document.getElementById("fNextSub").textContent = `${nextEv.label} · ${until(nextEv.h*60+nextEv.m-model.nowMin)}`;
+  } else {
+    const tm = new Date(now); if(!overnight) tm.setDate(tm.getDate()+1);
+    const r = schedule(tm).restocks[0];
+    document.getElementById("fNext").textContent = fmtFull(r.h,r.m);
+    document.getElementById("fNextSub").textContent = overnight ? "Morning delivery · today" : "Morning delivery · tomorrow";
+  }
+  document.getElementById("fHours").textContent = `${fmt(today.open)}–${fmt(today.close)}`;
+  document.getElementById("fHoursSub").textContent = today.we ? "Open every day · weekend" : "Open every day";
+
+  document.getElementById("pct").textContent = pct+"%";
+  const circ = 2*Math.PI*50;
+  const arc = document.getElementById("ringArc");
+  arc.setAttribute("stroke-dasharray", `${circ*pct/100} ${circ}`);
+  arc.setAttribute("stroke", pct>=45 ? "var(--good)" : pct>=20 ? "var(--warn)" : "var(--crit)");
+  document.getElementById("ringWrap").setAttribute("aria-label", `Shelves ${pct}% full`);
+  document.getElementById("gaugeCopy").textContent = `${totalLeft} of ${totalCap} units on the shelf across ${items.length} items, counted by the cafe's weight sensors.`;
+  document.getElementById("cIn").textContent = c.in;
+  document.getElementById("cLow").textContent = c.low;
+  document.getElementById("cOut").textContent = c.out;
+  document.getElementById("updatedAt").textContent = `Updated ${fmt(H)}`;
+}
+
+const busyWord = r => r>0.75 ? "Very busy" : r>0.5 ? "Busy" : r>0.3 ? "Moderate" : "Quiet";
+function renderBusy(){
+  const {today, H, isOpen} = model;
+  const hrs = []; for(let h=today.open; h<today.close; h++) hrs.push(h);
+  const max = Math.max(...hrs.map(h=>today.traffic[h]));
+  const bars = document.getElementById("bars");
+  const perUnit = today.we ? 9 : 11;
+  bars.innerHTML = [0.5,1].map(f=>`<div class="gl" style="bottom:${f*128}px"></div>`).join("") +
+    hrs.map(h=>{
+      const v = today.traffic[h], r = v/max;
+      return `<div class="bar${h===H&&isOpen?" now":""}" data-h="${h}" data-v="${v*perUnit}" data-w="${busyWord(r)}"><i style="height:${Math.max(4,r*128)}px"></i></div>`;
+    }).join("");
+  document.getElementById("axis").innerHTML = hrs.map(h=>`<span>${((h+11)%12)+1}${h<12?"a":"p"}</span>`).join("");
+  document.getElementById("busyNote").textContent = isOpen ? `Right now: ${busyWord(today.traffic[H]/max).toLowerCase()}` : "Typical checkouts per hour";
+
+  // best time = quietest open hour after the latest restock still ahead or now, preferring right after a restock
+  const from = isOpen ? H : today.open;
+  let best=null, bestScore=-1;
+  for(let h=from; h<today.close-1; h++){
+    const sinceRestock = today.restocks.filter(r=>r.h<h).map(r=>h-r.h).sort((a,b)=>a-b)[0];
+    if(sinceRestock===undefined) continue;
+    const score = (1-today.traffic[h]/max) + (sinceRestock<=1?0.6:sinceRestock<=2?0.3:0);
+    if(score>bestScore){bestScore=score; best=h;}
+  }
+  document.getElementById("bestTime").innerHTML = best!==null
+    ? `<b>Best time to go${isOpen&&best===H?" is now":""}:</b> ${best===H&&isOpen?"":"around "+fmt(best)+". "}Fewer people in line and shelves fresh from the last restock.`
+    : `<b>Best time to go:</b> right after the morning delivery, when everything is fully stocked.`;
+}
+
+function renderTimeline(){
+  const {sim, overnight, today, simDay, nowMin} = model;
+  const restocks = overnight ? schedule(simDay).restocks : today.restocks;
+  const nextIdx = overnight ? -1 : restocks.findIndex(r=>r.h*60+r.m > nowMin);
+  document.getElementById("restockDay").textContent = overnight ? "Yesterday" : simDay.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"});
+  document.getElementById("timeline").innerHTML = restocks.map((r,i)=>{
+    const ev = sim.events.find(e=>e.label===r.label);
+    const done = !!ev && (overnight || r.h*60+r.m <= nowMin);
+    const cls = done ? "done" : i===nextIdx ? "next" : "";
+    let body;
+    if(done){
+      body = `<b>${r.label}</b><small>${ev.stocked} items restocked · ${ev.units} units added · ${ago(minsSince(r))}</small>`;
+      if(ev.missed.length) body += `<small class="miss">Missing from truck: ${ev.missed.map(m=>esc(m.name)).join(", ")}</small>`;
+    } else {
+      const n = ITEMS.filter(it=>r.kinds.includes(it.kind)).length;
+      body = `<b>${r.label}</b><small>${i===nextIdx?"Up next · "+until(r.h*60+r.m-nowMin)+" · ":"Scheduled · "}${n} items on the list</small>`;
+    }
+    return `<li class="${cls}"><span class="t">${fmtFull(r.h,r.m)}</span><span class="node"></span><div class="what">${body}</div></li>`;
+  }).join("");
+}
+
+const STATUS_LABEL = {in:"In stock",low:"Running low",out:"Sold out",arriving:"Restocking"};
+const ICON = {
+  in:`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`,
+  low:`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" aria-hidden="true"><path d="M12 6v8M12 18.5v.5"/></svg>`,
+  out:`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>`,
+  arriving:`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2"/></svg>`
+};
+const pill = it => `<span class="pill ${it.status}">${ICON[it.status]}${it.status==="arriving" && it.nextR ? "Back ~"+fmtFull(it.nextR.h,it.nextR.m) : STATUS_LABEL[it.status]}</span>`;
+const starSvg = on => `<svg width="18" height="18" viewBox="0 0 24 24" fill="${on?"currentColor":"none"}" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>`;
+
+function spark(it){
+  const h = it.hist; if(h.length<2) return "";
+  const W=92, Hh=30, max=it.cap;
+  const pts = h.map((v,i)=>[i/(h.length-1)*W, Hh-2-(Math.min(v,max)/max)*(Hh-4)]);
+  const line = pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+  const col = it.status==="in"?"var(--good)":it.status==="low"?"var(--warn)":it.status==="out"?"var(--crit)":"var(--accent)";
+  const e = pts[pts.length-1];
+  return `<svg class="spark" viewBox="0 0 ${W} ${Hh}" role="img" aria-label="Stock trend today"><path d="${line} L${W} ${Hh} L0 ${Hh}Z" fill="${col}" opacity=".12"/><path d="${line}" fill="none" stroke="${col}" stroke-width="1.6" stroke-linejoin="round"/><circle cx="${e[0]}" cy="${e[1]}" r="3" fill="${col}" stroke="var(--surface)" stroke-width="1.5"/></svg>`;
+}
+
+function lastLine(it){
+  if(it.missed) return `<small class="warnline">Not on the ${fmtFull(it.missed.h,it.missed.m)} truck</small>`;
+  if(!it.last) return it.nextR ? `<small>Arrives with the<br><b>${it.nextR.label.toLowerCase()}</b></small>` : `<small>Left over from yesterday</small>`;
+  return `<small>Restocked <b>${fmtFull(it.last.h,it.last.m)}</b><br>${ago(minsSince(it.last))}</small>`;
+}
+
+function card(it){
+  const on = favs.includes(it.id);
+  const segs = Math.min(it.cap, 12), filled = Math.round(Math.max(0,it.left)/it.cap*segs);
+  const shelfCls = it.status==="in"||it.status==="low" ? it.status : "out";
+  return `<article class="card ${it.status==="out"||it.status==="arriving"?"out":""}">
+    <div class="card-top">
+      <div><div class="cat">${esc(it.cat)}</div><div class="nm">${esc(it.name)}</div></div>
+      <button class="star" type="button" data-fav="${it.id}" aria-pressed="${on}" aria-label="${on?"Remove from":"Add to"} my list">${starSvg(on)}</button>
+    </div>
+    <div class="meta"><span class="price num">$${it.price.toFixed(2)}</span>${it.tags.map(t=>`<span class="tag" title="${TAGNAME[t]}">${t}</span>`).join("")}</div>
+    <div class="stockrow"><span class="left num"><b>${Math.max(0,it.left)}</b> of ${it.cap} left</span>${pill(it)}</div>
+    <div class="shelf ${shelfCls}" aria-hidden="true">${Array.from({length:segs},(_,i)=>`<i class="${i<filled?"f":""}"></i>`).join("")}</div>
+    <div class="card-foot">${lastLine(it)}${spark(it)}</div>
+  </article>`;
+}
+
+const ORDER = {in:0,low:1,arriving:2,out:3};
+function renderGrid(){
+  const q = ui.q.trim().toLowerCase();
+  let list = model.items.filter(it=>{
+    if(ui.cat!=="All" && it.cat!==ui.cat) return false;
+    if(ui.onlyIn && (it.status==="out"||it.status==="arriving")) return false;
+    if(ui.status){ const s = it.status==="arriving"?"out":it.status; if(s!==ui.status) return false; }
+    if(q){ const hay = (it.name+" "+it.cat+" "+it.tags.map(t=>TAGNAME[t]).join(" ")).toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  });
+  const by = {
+    avail:(a,b)=>ORDER[a.status]-ORDER[b.status] || CATS.indexOf(a.cat)-CATS.indexOf(b.cat) || a.name.localeCompare(b.name),
+    name:(a,b)=>a.name.localeCompare(b.name),
+    stock:(a,b)=>b.left/b.cap-a.left/a.cap,
+    price:(a,b)=>a.price-b.price
+  }[ui.sort];
+  list.sort(by);
+  const grid = document.getElementById("grid");
+  grid.innerHTML = list.length ? list.map(card).join("") : `<div class="noresults">No items match. Try a different search or category.</div>`;
+  let note = `${list.length} of ${model.items.length} items`;
+  if(ui.status) note += ` · showing ${STATUS_LABEL[ui.status].toLowerCase()} · <a href="#shelf" id="clearStatus" style="color:var(--accent)">show all</a>`;
+  document.getElementById("shelfNote").innerHTML = note;
+  const cs = document.getElementById("clearStatus");
+  if(cs) cs.onclick = e => { e.preventDefault(); ui.status=null; renderGrid(); };
+}
+
+function renderChips(){
+  const counts = {}; model.items.forEach(i=>{ if(i.status!=="out"&&i.status!=="arriving") counts[i.cat]=(counts[i.cat]||0)+1; });
+  const avail = model.items.filter(i=>i.status!=="out"&&i.status!=="arriving").length;
+  document.getElementById("chips").innerHTML = ["All",...CATS].map(c=>
+    `<button class="chip" type="button" data-cat="${esc(c)}" aria-pressed="${ui.cat===c}">${esc(c)} <em>${c==="All"?avail:(counts[c]||0)}</em></button>`).join("");
+}
+
+function renderMyList(){
+  const el = document.getElementById("mylist");
+  const mine = model.items.filter(i=>favs.includes(i.id));
+  el.innerHTML = mine.length ? mine.map(it=>`<div class="mini"><div style="flex:1;min-width:0"><div class="nm">${esc(it.name)}</div><small class="num">${Math.max(0,it.left)} left · $${it.price.toFixed(2)}</small></div>${pill(it)}</div>`).join("")
+    : `<div class="empty">Tap the star on any item to pin it here, so you can check your usual order before you walk over.</div>`;
+}
+
+function renderAll(){ build(); renderHero(); renderBusy(); renderTimeline(); renderMyList(); renderChips(); renderGrid(); }
+
+// ---------- events ----------
+document.getElementById("q").addEventListener("input", e=>{ ui.q=e.target.value; renderGrid(); });
+document.getElementById("sort").addEventListener("change", e=>{ ui.sort=e.target.value; renderGrid(); });
+document.getElementById("onlyIn").addEventListener("change", e=>{ ui.onlyIn=e.target.checked; renderGrid(); });
+document.getElementById("chips").addEventListener("click", e=>{ const b=e.target.closest("[data-cat]"); if(!b) return; ui.cat=b.dataset.cat; renderChips(); renderGrid(); });
+document.querySelectorAll(".count").forEach(b=>b.addEventListener("click",()=>{
+  ui.status = ui.status===b.dataset.status ? null : b.dataset.status;
+  if(ui.status==="out") { ui.onlyIn=false; document.getElementById("onlyIn").checked=false; }
+  renderGrid(); document.getElementById("shelf").scrollIntoView({behavior:"smooth",block:"start"});
+}));
+document.getElementById("grid").addEventListener("click", e=>{
+  const b = e.target.closest("[data-fav]"); if(!b) return;
+  const id = b.dataset.fav;
+  favs = favs.includes(id) ? favs.filter(f=>f!==id) : [...favs, id];
+  saveFavs(); renderMyList(); renderGrid();
+});
+const tip = document.getElementById("tip");
+document.getElementById("bars").addEventListener("mousemove", e=>{
+  const b = e.target.closest(".bar"); if(!b){ tip.hidden=true; return; }
+  const h=+b.dataset.h;
+  tip.innerHTML = `<b>${fmt(h)}–${fmt(h+1)}</b> · ${b.dataset.w} · ~${b.dataset.v} checkouts`;
+  const r = b.getBoundingClientRect();
+  tip.style.left = Math.min(window.innerWidth-110, Math.max(110, r.left+r.width/2))+"px"; tip.style.top = (r.top + r.height - parseFloat(b.firstElementChild.style.height))+"px";
+  tip.hidden=false;
+});
+document.getElementById("bars").addEventListener("mouseleave", ()=>tip.hidden=true);
+
+// ---------- hourly refresh ----------
+function tick(){
+  const now = new Date();
+  const k = dayKey(now)+"-"+now.getHours();
+  if(k!==hourKey){ hourKey=k; renderAll(); }
+  const secs = 3600 - (now.getMinutes()*60+now.getSeconds());
+  document.getElementById("countdown").textContent = `${String(Math.floor(secs/60)).padStart(2,"0")}:${String(secs%60).padStart(2,"0")}`;
+}
+tick(); setInterval(tick, 1000);
+// refresh relative times ("12 min ago") every minute without changing stock
+setInterval(()=>{ if(model){ build(); renderHero(); renderTimeline(); renderGrid(); renderMyList(); } }, 60000);
+</script>
+</body>
+</html>
